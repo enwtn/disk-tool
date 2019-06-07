@@ -48,6 +48,6 @@ func updateDiskInfo() {
 		percentage, _ := strconv.ParseUint(strings.Trim(fields[4], "%"), 10, 8)
 		mount := fields[5]
 
-		diskInfo = append(diskInfo, disk{name, size, used, availible, percentage, mount})
+		diskInfo = append(diskInfo, disk{name, size * 1024, used * 1024, availible * 1024, percentage, mount})
 	}
 }
