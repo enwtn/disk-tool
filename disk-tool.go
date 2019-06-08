@@ -6,15 +6,20 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/dustin/go-humanize"
 )
 
 type disk struct {
-	Name       string
-	Size       uint64
-	Used       uint64
-	Availible  uint64
-	Percentage uint64
-	Mount      string
+	Name              string
+	Size              uint64
+	SizeReadable      string
+	Used              uint64
+	UsedReadable      string
+	Available         uint64
+	AvailableReadable string
+	Percentage        uint64
+	Mount             string
 }
 
 var diskInfo []disk
@@ -37,6 +42,8 @@ func updateDiskInfo() {
 
 	lines := strings.Split(string(out), "\n")
 
+	var diskInfoTemp []disk
+
 	for _, line := range lines[1 : len(lines)-1] {
 		fields := strings.Fields(line)
 
@@ -48,6 +55,11 @@ func updateDiskInfo() {
 		percentage, _ := strconv.ParseUint(strings.Trim(fields[4], "%"), 10, 8)
 		mount := fields[5]
 
-		diskInfo = append(diskInfo, disk{name, size * 1024, used * 1024, availible * 1024, percentage, mount})
+		diskInfoTemp = append(diskInfoTemp,
+			disk{name, size * 1024, humanize.IBytes(size * 1024),
+				used * 1024, humanize.IBytes(used * 1024),
+				availible * 1024, humanize.IBytes(availible * 1024),
+				percentage, mount})
 	}
+	diskInfo = diskInfoTemp
 }

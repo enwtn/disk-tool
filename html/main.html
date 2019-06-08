@@ -16,11 +16,37 @@
 <body>
 
     <div class="container mt-5">
-        <h1>disk-tool</h1>
-        <h4>disk info</h4>
-        <div class="mx-auto">
+        <div class="col-md-10 mx-auto">
+            <h1>disk-tool</h1>
+            <h4 class="text-muted">disk info</h4>
             {{range .}}
-                {{.Percentage}}
+            <div class="card m-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{.Name}}</h5>
+
+                    <div class="row">
+                        <h6 class="col-6 mr-auto card-subtitle mb-2 text-muted">{{.Mount}}</h6>
+                        <h6 class="col-2 card-subtitle mb-2 text-muted text-right">{{.Percentage}}%</h6>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: {{.Percentage}}%"
+                            aria-valuenow="{{.Percentage}}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            size: {{.SizeReadable}}
+                        </div>
+                        <div class="col-md-4">
+                            used: {{.UsedReadable}}
+                        </div>
+                        <div class="col-md-4">
+                            available: {{.AvailableReadable}}
+                        </div>
+                    </div>
+                </div>
+            </div>
             {{end}}
         </div>
     </div>
