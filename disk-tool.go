@@ -2,6 +2,7 @@ package main
 
 import (
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -23,6 +24,7 @@ type disk struct {
 }
 
 var diskInfo []disk
+var watchList []string
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.ParseFiles("html/main.html"))
@@ -30,6 +32,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	watchList = getWatchList()
 	updateDiskInfo()
 
 	http.HandleFunc("/", handler)
@@ -55,11 +58,40 @@ func updateDiskInfo() {
 		percentage, _ := strconv.ParseUint(strings.Trim(fields[4], "%"), 10, 8)
 		mount := fields[5]
 
-		diskInfoTemp = append(diskInfoTemp,
-			disk{name, size * 1024, humanize.IBytes(size * 1024),
-				used * 1024, humanize.IBytes(used * 1024),
-				availible * 1024, humanize.IBytes(availible * 1024),
-				percentage, mount})
+		if contains(watchList, mount) {
+			diskInfoTemp = append(diskInfoTemp,
+				disk{name, size * 1024, humanize.IBytes(size * 1024),
+					used * 1024, humanize.IBytes(used * 1024),
+					availible * 1024, humanize.IBytes(availible * 1024),
+					percentage, mount})
+		}
 	}
 	diskInfo = diskInfoTemp
+}
+
+func getWatchList() []string {
+	data, err := ioutil.ReadFile("watchlist.txt")
+	if err == nil {
+		lines := strings.Split(string(data), "\n")
+
+		var wl []string
+
+		for _, line := range lines {
+			if !strings.HasPrefix(line, "#") {
+				wl = append(wl, strings.TrimSpace(line))
+			}
+		}
+
+		return wl
+	}
+	panic(err)
+}
+
+func contains(a []string, s string) bool {
+	for _, e := range a {
+		if e == s {
+			return true
+		}
+	}
+	return false
 }
