@@ -3,28 +3,27 @@ package main
 import (
 	"html/template"
 	"io/ioutil"
+	"math"
 	"net/http"
-	"os/exec"
-	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/dustin/go-humanize"
 )
 
 type disk struct {
-	Name              string
+	Mount             string
 	Size              uint64
 	SizeReadable      string
-	Used              uint64
-	UsedReadable      string
 	Available         uint64
 	AvailableReadable string
-	Percentage        uint64
-	Mount             string
+	Used              uint64
+	UsedReadable      string
+	Percentage        uint8
 }
 
-var diskInfo []disk
 var watchList []string
+var diskInfo []disk
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.ParseFiles("html/main.html"))
@@ -39,36 +38,31 @@ func main() {
 	http.ListenAndServe(":8192", nil)
 }
 
+// updates the disk information
 func updateDiskInfo() {
-	c := exec.Command("df")
-	out, _ := c.Output()
+	var dInfo []disk
 
-	lines := strings.Split(string(out), "\n")
+	for _, dir := range watchList {
+		var stat syscall.Statfs_t
+		syscall.Statfs(dir, &stat)
 
-	var diskInfoTemp []disk
+		bSize := uint64(stat.Bsize)
 
-	for _, line := range lines[1 : len(lines)-1] {
-		fields := strings.Fields(line)
+		size := uint64(stat.Blocks * bSize)
+		sizeReadable := humanize.IBytes(size)
+		available := uint64(stat.Bavail * bSize)
+		availableReadable := humanize.IBytes(available)
+		used := size - available
+		usedReadable := humanize.IBytes(used)
+		percentage := uint8(math.Round((float64(used) / float64(size)) * 100))
 
-		// sizes are in 1k blocks
-		name := fields[0]
-		size, _ := strconv.ParseUint(fields[1], 10, 64)
-		used, _ := strconv.ParseUint(fields[2], 10, 64)
-		availible, _ := strconv.ParseUint(fields[3], 10, 64)
-		percentage, _ := strconv.ParseUint(strings.Trim(fields[4], "%"), 10, 8)
-		mount := fields[5]
+		dInfo = append(dInfo, disk{dir, size, sizeReadable, available, availableReadable, used, usedReadable, percentage})
 
-		if contains(watchList, mount) {
-			diskInfoTemp = append(diskInfoTemp,
-				disk{name, size * 1024, humanize.IBytes(size * 1024),
-					used * 1024, humanize.IBytes(used * 1024),
-					availible * 1024, humanize.IBytes(availible * 1024),
-					percentage, mount})
-		}
 	}
-	diskInfo = diskInfoTemp
+	diskInfo = dInfo
 }
 
+// reads watchlist from file to get mountpoints to check
 func getWatchList() []string {
 	data, err := ioutil.ReadFile("watchlist.txt")
 	if err == nil {
@@ -85,13 +79,4 @@ func getWatchList() []string {
 		return wl
 	}
 	panic(err)
-}
-
-func contains(a []string, s string) bool {
-	for _, e := range a {
-		if e == s {
-			return true
-		}
-	}
-	return false
 }
