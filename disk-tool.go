@@ -43,7 +43,7 @@ func main() {
 	db, err := sql.Open("sqlite3", "./diskInfo.db")
 	checkErr(err)
 
-	go logDiskInfo(db, logInterval)
+	go logDiskInfo(db, logInterval, watchList)
 
 	http.HandleFunc("/", handler)
 	http.ListenAndServe(":8192", nil)
@@ -72,24 +72,21 @@ func updateDiskInfo(watchList []string) {
 	diskInfo = dInfo
 }
 
-func logDiskInfo(db *sql.DB, logInterval int) {
+func logDiskInfo(db *sql.DB, logInterval int, watchList []string) {
 	// make sure the log table exists
 	_, err := db.Exec("CREATE TABLE IF NOT EXISTS logs (mount VARCHAR(100), time TIMESTAMP, bytes BIGINT)")
 	checkErr(err)
 
-	// check if there is any previous data
-	rows, err := db.Query("SELECT COUNT(*) FROM logs")
+	var lastLogTimeStampNull sql.NullInt64
+	err = db.QueryRow("SELECT MAX(time) FROM logs").Scan(&lastLogTimeStampNull)
 	checkErr(err)
 
-	// if there is previous data then calculate the correct time to log.
-	// done so that there isnt random intervals between the logs.
-	if rows.Next() {
-		rows.Close()
-		var lastLogTimeStamp int64
-		err = db.QueryRow("SELECT MAX(time) FROM logs").Scan(&lastLogTimeStamp)
+	// if there is previous data
+	if lastLogTimeStampNull.Valid {
+		lastLogTimeStamp, err := lastLogTimeStampNull.Value()
 		checkErr(err)
 
-		lastLogTime := time.Unix(lastLogTimeStamp, 0)
+		lastLogTime := time.Unix(lastLogTimeStamp.(int64), 0)
 		// check if a log is due
 		if time.Now().Sub(lastLogTime).Seconds() < float64(logInterval) {
 			// calculate time until next log is due
@@ -106,10 +103,16 @@ func logDiskInfo(db *sql.DB, logInterval int) {
 
 	// keep logging every (logInterval) seconds until the program stops
 	for {
-		for _, disk := range diskInfo {
-			_, err := db.Exec("INSERT INTO logs VALUES ('" + disk.Mount + "', strftime('%s','now'),'" + strconv.FormatUint(disk.Available, 10) + "')")
-			checkErr(err)
-		}
+		go func(watchList []string) {
+			// update diskInfo before every log
+			updateDiskInfo(watchList)
+
+			for _, disk := range diskInfo {
+				_, err := db.Exec("INSERT INTO logs VALUES ('" + disk.Mount + "', strftime('%s','now'),'" + strconv.FormatUint(disk.Available, 10) + "')")
+				checkErr(err)
+			}
+		}(watchList)
+
 		time.Sleep(time.Duration(logInterval) * time.Second)
 	}
 }
