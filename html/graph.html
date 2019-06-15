@@ -1,0 +1,44 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <canvas id="diskUsageChart" width="1000" height="400"></canvas>
+
+    <script src="static/js/Chart.Core.min.js"></script>
+    <script src="static/js/Chart.Scatter.min.js"></script>
+
+    <script>
+
+        var data = [
+            {
+                label: 'Disk Usage',
+                strokeColor: '#00c7ff',
+            }];
+
+        var ctx = document.getElementById("diskUsageChart").getContext("2d");
+        var diskUsageGraph = new Chart(ctx).Scatter(data, {
+            showTooltips: true,
+            scaleShowHorizontalLines: true,
+            scaleShowLabels: true,
+            scaleType: "date",
+            scaleLabel: "<%=value%> GB",
+        });
+
+        fetch("graphData")
+            .then((resp) => resp.json())
+            .then(function (data) {
+                for(i = 0; i < data.length; i++){
+                    diskUsageGraph.datasets[0].addPoint(new Date(data[i].time),data[i].bytes/1073741824)
+                    diskUsageGraph.update()
+                }
+            });
+
+        diskUsageGraph.update()
+
+    </script>
+</body>
+
+</html>

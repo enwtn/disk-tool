@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bdwilliams/go-jsonify/jsonify"
 	"github.com/dustin/go-humanize"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -26,6 +28,7 @@ type disk struct {
 	Percentage        uint8
 }
 
+var db *sql.DB
 var diskInfo []disk
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -33,19 +36,44 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, diskInfo)
 }
 
+func graphHandler(w http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.ParseFiles("html/graph.html"))
+	t.Execute(w, diskInfo)
+}
+
+func graphDataHandler(w http.ResponseWriter, r *http.Request) {
+
+	rows, err := db.Query(fmt.Sprintf("SELECT time,bytes from logs WHERE mount='%s'", "/mnt/c"))
+	checkErr(err)
+	defer rows.Close()
+
+	json := jsonify.Jsonify(rows)
+	jsonString := "["
+	for _, line := range json {
+		jsonString += line
+	}
+	jsonString += "]"
+
+	w.Write([]byte(jsonString))
+}
+
 func main() {
 	// how often to log (seconds)
-	var logInterval = 300
+	var logInterval = 900
 
 	watchList := getWatchList()
 	updateDiskInfo(watchList)
 
-	db, err := sql.Open("sqlite3", "./diskInfo.db")
+	var err error
+	db, err = sql.Open("sqlite3", "./diskInfo.db")
 	checkErr(err)
 
-	go logDiskInfo(db, logInterval, watchList)
+	go logDiskInfo(logInterval, watchList)
 
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/graph", graphHandler)
+	http.HandleFunc("/graphData", graphDataHandler)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.ListenAndServe(":8192", nil)
 }
 
@@ -72,7 +100,7 @@ func updateDiskInfo(watchList []string) {
 	diskInfo = dInfo
 }
 
-func logDiskInfo(db *sql.DB, logInterval int, watchList []string) {
+func logDiskInfo(logInterval int, watchList []string) {
 	// make sure the log table exists
 	_, err := db.Exec("CREATE TABLE IF NOT EXISTS logs (mount VARCHAR(100), time TIMESTAMP, bytes BIGINT)")
 	checkErr(err)
