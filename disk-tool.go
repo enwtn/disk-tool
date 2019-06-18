@@ -40,7 +40,6 @@ func graphHandler(w http.ResponseWriter, r *http.Request) {
 	diskName := strings.Replace(r.URL.Path[len("/graph/"):], "@", "/", -1)
 	for _, disk := range diskInfo {
 		if disk.Mount == diskName {
-			fmt.Println(diskName)
 			t := template.Must(template.ParseFiles("html/graph.html"))
 			t.Execute(w, disk)
 			return
