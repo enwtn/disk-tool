@@ -5,38 +5,80 @@
 </head>
 
 <body>
-    <canvas id="diskUsageChart" width="1000" height="400"></canvas>
+    <div class="container" style="width: 1000px; height: 500px">
+        <canvas id="diskUsageCanvas"></canvas>
+    </div>
 
-    <script src="static/js/Chart.Core.min.js"></script>
-    <script src="static/js/Chart.Scatter.min.js"></script>
+    <script src="/static/js/moment.js"></script>
+    <script src="/static/js/Chart.js"></script>
 
     <script>
 
-        var data = [
-            {
-                label: 'Disk Usage',
-                strokeColor: '#00c7ff',
-            }];
+        var diskName = "{{.Mount}}"
+        var escapedDiskName = diskName.replace(/\//g, '@');
 
-        var ctx = document.getElementById("diskUsageChart").getContext("2d");
-        var diskUsageGraph = new Chart(ctx).Scatter(data, {
-            showTooltips: true,
-            scaleShowHorizontalLines: true,
-            scaleShowLabels: true,
-            scaleType: "date",
-            scaleLabel: "<%=value%> GB",
-        });
+        var diskData = []
 
-        fetch("graphData")
+        fetch("/data/" + escapedDiskName)
             .then((resp) => resp.json())
             .then(function (data) {
-                for(i = 0; i < data.length; i++){
-                    diskUsageGraph.datasets[0].addPoint(new Date(data[i].time),data[i].bytes/1073741824)
-                    diskUsageGraph.update()
+                for (i = 0; i < data.length; i++) {
+                    diskData.push({ x: new Date(data[i].time), y: Math.round((data[i].bytes / 1073741824) * 100) / 100 })
                 }
+                diskUsageGraph.update()
             });
 
-        diskUsageGraph.update()
+
+        var config = {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: diskName,
+                    backgroundColor: "#007bff",
+                    borderColor: "#007bff",
+                    fill: false,
+                    data: diskData
+                }]
+            },
+            options: {
+                legend: {
+                    display: false
+                },
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Disk Space Availible at ' + diskName
+                },
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Date'
+                        },
+                        ticks: {
+                            major: {
+                                fontStyle: 'bold',
+                                fontColor: '#FF0000'
+                            }
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Disk Space (GB)'
+                        }
+                    }]
+                }
+            }
+        };
+
+        window.onload = function () {
+            var ctx = document.getElementById('diskUsageCanvas').getContext('2d');
+            diskUsageGraph = new Chart(ctx, config);
+        }
 
     </script>
 </body>

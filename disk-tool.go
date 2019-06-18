@@ -37,24 +37,40 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func graphHandler(w http.ResponseWriter, r *http.Request) {
-	t := template.Must(template.ParseFiles("html/graph.html"))
-	t.Execute(w, diskInfo)
+	diskName := strings.Replace(r.URL.Path[len("/graph/"):], "@", "/", -1)
+	for _, disk := range diskInfo {
+		if disk.Mount == diskName {
+			fmt.Println(diskName)
+			t := template.Must(template.ParseFiles("html/graph.html"))
+			t.Execute(w, disk)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusBadRequest)
 }
 
-func graphDataHandler(w http.ResponseWriter, r *http.Request) {
+func dataHandler(w http.ResponseWriter, r *http.Request) {
+	diskName := strings.Replace(r.URL.Path[len("/data/"):], "@", "/", -1)
+	for _, disk := range diskInfo {
+		if disk.Mount == diskName {
+			rows, err := db.Query(fmt.Sprintf("SELECT time,bytes from logs WHERE mount='%s'", disk.Mount))
+			checkErr(err)
+			defer rows.Close()
 
-	rows, err := db.Query(fmt.Sprintf("SELECT time,bytes from logs WHERE mount='%s'", "/mnt/c"))
-	checkErr(err)
-	defer rows.Close()
+			json := jsonify.Jsonify(rows)
+			jsonString := "["
+			for _, line := range json {
+				jsonString += line
+			}
+			jsonString += "]"
 
-	json := jsonify.Jsonify(rows)
-	jsonString := "["
-	for _, line := range json {
-		jsonString += line
+			w.Write([]byte(jsonString))
+			return
+		}
 	}
-	jsonString += "]"
 
-	w.Write([]byte(jsonString))
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 func main() {
@@ -71,8 +87,8 @@ func main() {
 	go logDiskInfo(logInterval, watchList)
 
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/graph", graphHandler)
-	http.HandleFunc("/graphData", graphDataHandler)
+	http.HandleFunc("/graph/", graphHandler)
+	http.HandleFunc("/data/", dataHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.ListenAndServe(":8192", nil)
 }
