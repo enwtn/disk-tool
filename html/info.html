@@ -1,0 +1,146 @@
+<html>
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>{{.Disk.Mount}} stats</title>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="col-md-10 mx-auto">
+            <h1>{{.Disk.Mount}} statistics</h1>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            size: {{.Disk.SizeReadable}}
+                        </div>
+                        <div class="col-md-4">
+                            used: {{.Disk.UsedReadable}}
+                        </div>
+                        <div class="col-md-4">
+                            available: {{.Disk.AvailableReadable}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvasContainer my-5">
+                <canvas id="diskUsageCanvas"></canvas>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Disk Space Changes</h5>
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            {{ if .MonthPositive}}
+                            30 days: <span style="color:green">{{.ChangeMonth}}</span>
+                            {{else}}
+                            30 days: <span style="color:red">{{.ChangeMonth}}</span>
+                            {{end}}
+                        </div>
+                        <div class="col-md-4">
+                            {{ if .WeekPositive}}
+                            7 days: <span style="color:green">{{.ChangeWeek}}</span>
+                            {{else}}
+                            7 days: <span style="color:red">{{.ChangeWeek}}</span>
+                            {{end}}
+                        </div>
+                        <div class="col-md-4">
+                            {{ if .DayPositive}}
+                            1 day: <span style="color:green">{{.ChangeDay}}</span>
+                            {{else}}
+                            1 day: <span style="color:red">{{.ChangeDay}}</span>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="/static/js/moment.js"></script>
+    <script src="/static/js/Chart.min.js"></script>
+
+    <script>
+
+        var diskName = "{{.Disk.Mount}}"
+        var escapedDiskName = "{{.Disk.MountEscaped}}";
+
+        var diskData = []
+
+        fetch("/data/" + escapedDiskName)
+            .then((resp) => resp.json())
+            .then(function (data) {
+                for (i = 0; i < data.length; i++) {
+                    diskData.push({ x: new Date(data[i].time), y: Math.round((data[i].bytes / 1073741824) * 100) / 100 })
+                }
+                diskUsageGraph.update()
+            });
+
+
+        var config = {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: diskName,
+                    backgroundColor: "#007bff",
+                    borderColor: "#007bff",
+                    fill: false,
+                    data: diskData
+                }]
+            },
+            options: {
+                legend: {
+                    display: false
+                },
+                responsive: true,
+                title: {
+                    display: false,
+                    text: 'Disk Space Availible at ' + diskName
+                },
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Date'
+                        },
+                        ticks: {
+                            major: {
+                                fontStyle: 'bold',
+                                fontColor: '#FF0000'
+                            }
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Disk Space Availible (GB)'
+                        }
+                    }]
+                }
+            }
+        };
+
+        window.onload = function () {
+            var ctx = document.getElementById('diskUsageCanvas').getContext('2d');
+            diskUsageGraph = new Chart(ctx, config);
+        }
+
+    </script>
+</body>
+
+</html>

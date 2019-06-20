@@ -19,6 +19,7 @@ import (
 
 type disk struct {
 	Mount             string
+	MountEscaped      string
 	Size              uint64
 	SizeReadable      string
 	Available         uint64
@@ -26,6 +27,16 @@ type disk struct {
 	Used              uint64
 	UsedReadable      string
 	Percentage        uint8
+}
+
+type statsInfo struct {
+	Disk          disk
+	ChangeMonth   string
+	MonthPositive bool
+	ChangeWeek    string
+	WeekPositive  bool
+	ChangeDay     string
+	DayPositive   bool
 }
 
 var db *sql.DB
@@ -36,12 +47,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, diskInfo)
 }
 
-func graphHandler(w http.ResponseWriter, r *http.Request) {
-	diskName := strings.Replace(r.URL.Path[len("/graph/"):], "@", "/", -1)
+func infoHandler(w http.ResponseWriter, r *http.Request) {
+	diskName := strings.Replace(r.URL.Path[len("/info/"):], "@", "/", -1)
 	for _, disk := range diskInfo {
 		if disk.Mount == diskName {
-			t := template.Must(template.ParseFiles("html/graph.html"))
-			t.Execute(w, disk)
+			stats := getStatsInfo(disk)
+			t := template.Must(template.ParseFiles("html/info.html"))
+			t.Execute(w, stats)
 			return
 		}
 	}
@@ -86,10 +98,43 @@ func main() {
 	go logDiskInfo(logInterval, watchList)
 
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/graph/", graphHandler)
+	http.HandleFunc("/info/", infoHandler)
 	http.HandleFunc("/data/", dataHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.ListenAndServe(":8192", nil)
+}
+
+func getStatsInfo(disk disk) statsInfo {
+	var times []int64
+
+	timeNow := time.Now().Unix()
+	times = append(times, timeNow-2592000)
+	times = append(times, timeNow-604800)
+	times = append(times, timeNow-86400)
+
+	var results []string
+	var changeValue []bool
+
+	for _, time := range times {
+		query := fmt.Sprintf("SELECT bytes FROM logs WHERE time > %s ORDER BY time ASC LIMIT 1", strconv.FormatInt(time, 10))
+		var bytes uint64
+		err := db.QueryRow(query).Scan(&bytes)
+		if err != nil {
+			results = append(results, "ERROR")
+			changeValue = append(changeValue, false)
+		} else {
+			if disk.Available > bytes {
+				results = append(results, humanize.IBytes(disk.Available-bytes))
+				changeValue = append(changeValue, true)
+			} else {
+				results = append(results, "-"+humanize.IBytes(bytes-disk.Available))
+				changeValue = append(changeValue, false)
+			}
+		}
+	}
+
+	s := statsInfo{disk, results[0], changeValue[0], results[1], changeValue[1], results[2], changeValue[2]}
+	return s
 }
 
 // updates the disk information
@@ -97,6 +142,8 @@ func updateDiskInfo(watchList []string) {
 	var dInfo []disk
 
 	for _, dir := range watchList {
+		mountEscaped := strings.Replace(dir, "/", "@", -1)
+
 		var stat syscall.Statfs_t
 		syscall.Statfs(dir, &stat)
 
@@ -110,7 +157,7 @@ func updateDiskInfo(watchList []string) {
 		usedReadable := humanize.IBytes(used)
 		percentage := uint8(math.Round((float64(used) / float64(size)) * 100))
 
-		dInfo = append(dInfo, disk{dir, size, sizeReadable, available, availableReadable, used, usedReadable, percentage})
+		dInfo = append(dInfo, disk{dir, mountEscaped, size, sizeReadable, available, availableReadable, used, usedReadable, percentage})
 	}
 	diskInfo = dInfo
 }
