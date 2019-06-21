@@ -116,7 +116,7 @@ func getStatsInfo(disk disk) statsInfo {
 	var changeValue []bool
 
 	for _, time := range times {
-		query := fmt.Sprintf("SELECT bytes FROM logs WHERE time > %s ORDER BY time ASC LIMIT 1", strconv.FormatInt(time, 10))
+		query := fmt.Sprintf("SELECT bytes FROM logs WHERE time > %s AND mount='%s' ORDER BY time ASC LIMIT 1", strconv.FormatInt(time, 10), disk.Mount)
 		var bytes uint64
 		err := db.QueryRow(query).Scan(&bytes)
 		if err != nil {

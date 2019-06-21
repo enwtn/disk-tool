@@ -43,23 +43,23 @@
                     <div class="row text-center">
                         <div class="col-md-4">
                             {{ if .MonthPositive}}
-                            30 days: <span style="color:green">{{.ChangeMonth}}</span>
+                            30 days: <span class="badge badge-success">{{.ChangeMonth}}</span>
                             {{else}}
-                            30 days: <span style="color:red">{{.ChangeMonth}}</span>
+                            30 days: <span class="badge badge-danger">{{.ChangeMonth}}</span>
                             {{end}}
                         </div>
                         <div class="col-md-4">
                             {{ if .WeekPositive}}
-                            7 days: <span style="color:green">{{.ChangeWeek}}</span>
+                            7 days: <span class="badge badge-success">{{.ChangeWeek}}</span>
                             {{else}}
-                            7 days: <span style="color:red">{{.ChangeWeek}}</span>
+                            7 days: <span class="badge badge-danger">{{.ChangeWeek}}</span>
                             {{end}}
                         </div>
                         <div class="col-md-4">
                             {{ if .DayPositive}}
-                            1 day: <span style="color:green">{{.ChangeDay}}</span>
+                            1 day: <span class="badge badge-success">{{.ChangeDay}}</span>
                             {{else}}
-                            1 day: <span style="color:red">{{.ChangeDay}}</span>
+                            1 day: <span class="badge badge-danger">{{.ChangeDay}}</span>
                             {{end}}
                         </div>
                     </div>
