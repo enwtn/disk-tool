@@ -40,7 +40,8 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Disk Space Changes</h5>
-                    <div class="row text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">The changes in disk space over the last 30, 7 and 1 days. </h6>
+                    <div class="row text-center mt-3">
                         <div class="col-md-4">
                             {{ if .MonthPositive}}
                             30 days: <span class="badge badge-success">{{.ChangeMonth}}</span>
@@ -61,6 +62,24 @@
                             {{else}}
                             1 day: <span class="badge badge-danger">{{.ChangeDay}}</span>
                             {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Disk Fill Predictions</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">The time until the disk is full calculated from the disk usage rates. </h6>
+                    <div class="row text-center mt-3">
+                        <div class="col-md-4">
+                            30 days: <span class="badge badge-secondary">{{.FullMonth}}</span>
+                        </div>
+                        <div class="col-md-4">
+                            7 days: <span class="badge badge-secondary">{{.FullWeek}}</span>
+                        </div>
+                        <div class="col-md-4">
+                            1 day: <span class="badge badge-secondary">{{.FullDay}}</span>
                         </div>
                     </div>
                 </div>
