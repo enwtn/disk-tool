@@ -90,7 +90,7 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// how often to log (seconds)
-	var logInterval = 900
+	var logInterval = 3600
 
 	watchList := getWatchList()
 	updateDiskInfo(watchList)
@@ -219,11 +219,6 @@ func logDiskInfo(logInterval int, watchList []string) {
 			timeTillLog := lastLogTime.Add(time.Duration(logInterval) * time.Second).Sub(time.Now())
 			// sleep until then
 			time.Sleep(timeTillLog)
-		} else {
-			//calculate time next log time that fits interval
-			timeTillLog := float64(logInterval) - math.Mod(time.Now().Sub(lastLogTime).Seconds(), float64(logInterval))
-			// sleep until then
-			time.Sleep(time.Duration(timeTillLog) * time.Second)
 		}
 	}
 
