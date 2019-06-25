@@ -10,6 +10,12 @@
         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
     <title>{{.Disk.Mount}} stats</title>
+
+    <!-- Variables for graph script -->
+    <script>
+        var diskName = "{{.Disk.Mount}}";
+        var escapedDiskName = "{{.Disk.MountEscaped}}";
+    </script>
 </head>
 
 <body>
@@ -30,6 +36,19 @@
                             available: {{.Disk.AvailableReadable}}
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="dropdown float-right my-3">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Month
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton">
+                    <a class="dropdown-item" id="dayGraph" href="#">Day</a>
+                    <a class="dropdown-item" id="weekGraph" href="#">Week</a>
+                    <a class="dropdown-item" id="monthGraph" href="#">Month</a>
+                    <a class="dropdown-item" id="yearGraph" href="#">Year</a>
                 </div>
             </div>
 
@@ -90,78 +109,22 @@
         </div>
     </div>
 
+    <!-- Graph JS -->
     <script src="/static/js/moment.js"></script>
     <script src="/static/js/Chart.min.js"></script>
+    <script src="/static/js/diskGraph.js"></script>
 
-    <script>
+    <!-- Bootstrap JS  for dropdown -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
 
-        var diskName = "{{.Disk.Mount}}"
-        var escapedDiskName = "{{.Disk.MountEscaped}}";
-
-        var diskData = []
-
-        fetch("/data/" + escapedDiskName)
-            .then((resp) => resp.json())
-            .then(function (data) {
-                for (i = 0; i < data.length; i++) {
-                    diskData.push({ x: new Date(data[i].time), y: Math.round((data[i].bytes / 1073741824) * 100) / 100 })
-                }
-                diskUsageGraph.update()
-            });
-
-
-        var config = {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: diskName,
-                    backgroundColor: "#007bff",
-                    borderColor: "#007bff",
-                    fill: false,
-                    data: diskData
-                }]
-            },
-            options: {
-                legend: {
-                    display: false
-                },
-                responsive: true,
-                title: {
-                    display: false,
-                    text: 'Disk Space Availible at ' + diskName
-                },
-                scales: {
-                    xAxes: [{
-                        type: 'time',
-                        display: true,
-                        scaleLabel: {
-                            display: true,
-                            labelString: 'Date'
-                        },
-                        ticks: {
-                            major: {
-                                fontStyle: 'bold',
-                                fontColor: '#FF0000'
-                            }
-                        }
-                    }],
-                    yAxes: [{
-                        display: true,
-                        scaleLabel: {
-                            display: true,
-                            labelString: 'Disk Space Availible (GB)'
-                        }
-                    }]
-                }
-            }
-        };
-
-        window.onload = function () {
-            var ctx = document.getElementById('diskUsageCanvas').getContext('2d');
-            diskUsageGraph = new Chart(ctx, config);
-        }
-
-    </script>
 </body>
 
 </html>

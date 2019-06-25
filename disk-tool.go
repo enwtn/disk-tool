@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"math"
@@ -66,10 +65,20 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 
 // serves sql data as json array
 func dataHandler(w http.ResponseWriter, r *http.Request) {
-	diskName := strings.Replace(r.URL.Path[len("/data/"):], "@", "/", -1)
+	diskName := strings.Replace(r.URL.Path[len("/info/"):], "@", "/", -1)
+
+	queries := r.URL.Query()
+	since := queries.Get("since")
+	var queryString string
+	if since != "" {
+		queryString = "SELECT time,bytes from logs WHERE mount=? AND time > ?"
+	} else {
+		queryString = "SELECT time,bytes from logs WHERE mount=?"
+	}
+
 	for _, disk := range diskInfo {
 		if disk.Mount == diskName {
-			rows, err := db.Query(fmt.Sprintf("SELECT time,bytes from logs WHERE mount='%s'", disk.Mount))
+			rows, err := db.Query(queryString, disk.Mount, since)
 			checkErr(err)
 			defer rows.Close()
 
@@ -121,11 +130,14 @@ func getStatsInfo(disk disk) statsInfo {
 	var changeValue []bool   // is change positive or negative?
 	var predictions []string // when disk space will run out based on different changes
 
+	query, err := db.Prepare("SELECT bytes FROM logs WHERE time > ? AND mount=? ORDER BY time ASC LIMIT 1")
+	checkErr(err)
+	defer query.Close()
+
 	for _, t := range times {
 		// get the first log after the given time for the given disk
-		query := fmt.Sprintf("SELECT bytes FROM logs WHERE time > %s AND mount='%s' ORDER BY time ASC LIMIT 1", strconv.FormatInt(t, 10), disk.Mount)
 		var bytes uint64
-		err := db.QueryRow(query).Scan(&bytes)
+		err := query.QueryRow(strconv.FormatInt(t, 10), disk.Mount).Scan(&bytes)
 
 		if err != nil {
 			results = append(results, "ERROR")
@@ -229,7 +241,7 @@ func logDiskInfo(logInterval int, watchList []string) {
 			updateDiskInfo(watchList)
 
 			for _, disk := range diskInfo {
-				_, err := db.Exec("INSERT INTO logs VALUES ('" + disk.Mount + "', strftime('%s','now'),'" + strconv.FormatUint(disk.Available, 10) + "')")
+				_, err := db.Exec("INSERT INTO logs VALUES(?, strftime('%s','now'), ?)", disk.Mount, strconv.FormatUint(disk.Available, 10))
 				checkErr(err)
 			}
 		}(watchList)
