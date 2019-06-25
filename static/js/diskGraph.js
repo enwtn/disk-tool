@@ -66,11 +66,6 @@ window.onload = function () {
     diskUsageGraph = new Chart(ctx, config);
 }
 
-
-
-
-// 
-
 document.getElementById("dayGraph").addEventListener("click",function(){
     document.getElementById("dropdownMenuButton").innerHTML = "Day"
     changeGraph(1)

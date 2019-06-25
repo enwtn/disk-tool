@@ -49,6 +49,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, diskInfo)
 }
 
+// serves statistics pages for disks
 func infoHandler(w http.ResponseWriter, r *http.Request) {
 	diskName := strings.Replace(r.URL.Path[len("/info/"):], "@", "/", -1)
 	for _, disk := range diskInfo {
