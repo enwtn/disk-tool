@@ -8,7 +8,7 @@ then
     cp /disk-tool/config-files/watchlist.txt /config/
 fi
 
-if [ -e /disk-tool/diskInfo.db ]
+if [ -e /disk-tool/watchlist.txt ]
 then
     rm /disk-tool/watchlist.txt
 fi
