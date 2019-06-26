@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -115,6 +117,8 @@ func main() {
 	http.HandleFunc("/info/", infoHandler)
 	http.HandleFunc("/data/", dataHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	fmt.Println("disk-tool running on :8192")
 	http.ListenAndServe(":8192", nil)
 }
 
@@ -269,8 +273,15 @@ func getWatchList() []string {
 		for _, line := range lines {
 			// ignore comment lines
 			if !strings.HasPrefix(line, "#") {
-				wl = append(wl, strings.TrimSpace(line))
+				dir := strings.TrimSpace(line)
+				if dir != "" {
+					wl = append(wl, dir)
+				}
 			}
+		}
+
+		if len(wl) == 0 {
+			log.Fatal("watchlist empty, please add some directories to monitor.")
 		}
 
 		return wl
