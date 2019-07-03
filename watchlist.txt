@@ -1,5 +1,2 @@
 # Enter the mount points of any disks you wish to monitor here.
 # Put each on a new line.
-/mnt/c
-/mnt/d
-/mnt/e

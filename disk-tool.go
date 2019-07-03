@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -46,6 +45,7 @@ type statsInfo struct {
 var db *sql.DB
 var diskInfo []disk
 
+// handle home page
 func handler(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.ParseFiles("html/main.html"))
 	t.Execute(w, diskInfo)
@@ -118,7 +118,7 @@ func main() {
 	http.HandleFunc("/data/", dataHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	fmt.Println("disk-tool running on :8192")
+	log.Println("disk-tool running on :8192")
 	http.ListenAndServe(":8192", nil)
 }
 

@@ -57,6 +57,9 @@ var config = {
             line: {
                 tension: 0 // disables bezier curves
             }
+        },
+        animation: {
+            duration: 0 // general animation time
         }
     }
 };
