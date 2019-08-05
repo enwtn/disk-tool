@@ -1,23 +1,13 @@
 var diskData = []
 
-fetch("/data/" + escapedDiskName)
-    .then((resp) => resp.json())
-    .then(function (data) {
-        for (i = 0; i < data.length; i++) {
-            diskData.push({ x: new Date(data[i].time), y: Math.round((data[i].bytes / 1073741824) * 100) / 100 });
-        }
-        diskUsageGraph.update();
-    });
-
-
 var config = {
     type: 'line',
     data: {
         datasets: [{
             label: diskName,
-            backgroundColor: "#007bff",
             borderColor: "#007bff",
-            fill: false,
+            backgroundColor: "rgba(0, 123, 255,0.1)",
+            fill: true,
             data: diskData
         }]
     },
@@ -67,6 +57,7 @@ var config = {
 window.onload = function () {
     var ctx = document.getElementById('diskUsageCanvas').getContext('2d');
     diskUsageGraph = new Chart(ctx, config);
+    changeGraph(30)
 }
 
 document.getElementById("dayGraph").addEventListener("click",function(){
